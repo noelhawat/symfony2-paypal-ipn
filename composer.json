@@ -1,10 +1,10 @@
 {
-    "name": "orderly/paypal-ipn-bundle",
+    "name": "noelhawat/paypal-ipn-bundle",
     "type": "symfony-bundle",
     "description": "A Symfony2 bundle for retrieving and logging PayPal Instant Payment Notifications (PayPal IPNs)",
     "keywords": ["payment", "paypal", "ipn"],
     "homepage": "https://github.com/orderly/symfony2-paypal-ipn",
-    "license": "Apache2",
+    "license": "MIT",
     "authors": [
         {
             "name": "Alexander Dean",

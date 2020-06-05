@@ -49,7 +49,7 @@ class IpnLog
      * @var string $transactionType
      *
      * @MongoDB\Field(name="transaction_type", type="string")
-     * @Assert\Length(max=16)
+     * @Assert\Length(max=255)
      */
     private $transactionType;
 

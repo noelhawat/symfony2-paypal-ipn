@@ -395,7 +395,7 @@ class IpnOrders
      * @var string $txnType
      *
      * @MongoDB\Field(name="txn_type", type="string")
-     * @Assert\Length(max=20)
+     * @Assert\Length(max=255)
      */
     private $txnType;
 

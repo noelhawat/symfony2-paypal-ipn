@@ -5,6 +5,7 @@ namespace Orderly\PayPalIpnBundle;
 use Symfony\Component\DependencyInjection as DI;
 use Symfony\Component\BrowserKit\Response;
 use Symfony\Component\BrowserKit\Request;
+use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 
 /*
  * Copyright 2012 Orderly Ltd 
@@ -136,7 +137,11 @@ class Ipn
         $this->transactionType = null;
 
         $usingCache = FALSE;
-        $request = $this->_sc->get('request');
+        try {
+            $request = $this->_sc->get('request');
+        } catch (ServiceNotFoundException $e) {
+            $request = $this->_sc->get('request_stack')->getCurrentRequest();
+        }
 
         //get post parameters
         $parameters = $request->request->all();
@@ -215,10 +220,16 @@ class Ipn
 
         // The IPN transaction is a genuine one - now we need to validate its contents.
         // First we check that the receiver email matches our email address.
-        if ($this->ipnData['receiver_email'] != $this->merchantEmail) {
-            $this->_logTransaction('IPN', 'ERROR', 'Receiver email ' . $this->ipnData['receiver_email'] . ' does not match merchant\'s email "'.$this->merchantEmail.'"', $ipnResponse);
-            
-            return FALSE;
+        if (($this->ipnData['receiver_email'] != "" && $this->ipnData['receiver_email'] != $this->merchantEmail) || ($this->ipnData['receiver_email'] == "" && $this->ipnData['business'] != $this->merchantEmail)) {
+            if ($this->ipnData['receiver_email'] && $this->ipnData['business']) {
+                $rcvemail = explode("@", strtolower($this->ipnData['receiver_email']));
+                $bsnemail = explode("@", strtolower($this->ipnData['business']));
+                if ($rcvemail[1] == $bsnemail[1]) {
+                } else {
+                    $this->_logTransaction('IPN', 'ERROR', 'Receiver email ' . $this->ipnData['receiver_email'] . ' does not match merchant\'s email "' . $this->merchantEmail . '"', $ipnResponse);
+                    return FALSE;
+                }
+            }
         }
 
         // Now we check that PayPal and this listener agree on whether this is a test or not
@@ -256,6 +267,7 @@ class Ipn
         //
         // We throw an error if the payment_status code is unrecognised.
         switch ($this->ipnData['payment_status']) {
+            case "Canceled_Reversal": // Reversal has been cancelled, so we have the money now
             case "Completed": // Order has been paid for
                 $this->orderStatus = self::PAID;
                 break;
@@ -263,6 +275,7 @@ class Ipn
             case "Processed": // Mostly used to indicate that a cheque has been received and is currently going through the verification process
                 $this->orderStatus = self::WAITING;
                 break;
+            case "Failed": // Payment failed after processing
             case "Voided": // Bounced or cancelled check
             case "Expired": // Credit card company didn't recognise card
             case "Reversed": // Credit card holder has got the credit card co to reverse the charge
